@@ -77,6 +77,19 @@
             display: block;
             margin-bottom: 5px;
         }
+        .resultText {
+            margin-top: 20px;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            font-size: 18px;
+            text-align: left;
+            border: 1px solid #ddd;
+            padding: 10px;
+            background-color: #f9f9f9;
+            max-height: 400px;
+            overflow-y: auto;
+            user-select: text; /* 選択可能にする */
+        }
     </style>
 </head>
 <body>
@@ -126,10 +139,19 @@
             </div>
             <button onclick="submitStats()">分配を確定</button>
         </div>
+
+        <!-- 結果を見やすい形でまとめるボタン -->
+        <button onclick="summarizeResult()">結果をまとめて表示</button>
+        
+        <!-- コピー用ボタン -->
+        <button onclick="copyResult()">結果をコピー</button>
+
+        <!-- 結果を表示するエリア -->
+        <div id="resultText" class="resultText"></div>
     </div>
 
     <script>
-        let randomNumber, randomType, moves;
+        let randomNumber, randomType, moves, name;
 
         function generateRandomNumbers() {
             // 100, 200, 300, 400, 500, 600 の配列
@@ -188,7 +210,7 @@
 
         function submitName() {
             // 名前を取得
-            const name = document.getElementById('nameInput').value || "名前なし";
+            name = document.getElementById('nameInput').value || "未設定";
 
             // 結果に名前を反映
             document.getElementById('randomNumber').textContent = `${name}の合計種族値: ${randomNumber}`;
@@ -213,6 +235,40 @@
             } else {
                 alert('種族値が正しく分配されました！');
             }
+        }
+
+        function summarizeResult() {
+            // 結果をテキスト形式でまとめて表示
+            const resultText = `
+名前: ${name || "未設定"}
+合計種族値: ${randomNumber}
+タイプ: ${randomType}
+            
+技一覧:
+${moves.join("\n")}
+
+ステータス:
+HP: ${document.getElementById('hp').value}
+攻撃: ${document.getElementById('attack').value}
+防御: ${document.getElementById('defense').value}
+特攻: ${document.getElementById('specialAttack').value}
+特防: ${document.getElementById('specialDefense').value}
+素早さ: ${document.getElementById('speed').value}
+            `;
+
+            // 結果を表示
+            document.getElementById('resultText').textContent = resultText;
+        }
+
+        function copyResult() {
+            const resultText = document.getElementById('resultText').textContent;
+
+            // コピーする
+            navigator.clipboard.writeText(resultText).then(() => {
+                alert('結果がコピーされました！');
+            }).catch(err => {
+                alert('コピーに失敗しました: ' + err);
+            });
         }
     </script>
 </body>
