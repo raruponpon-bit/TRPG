@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>乱数表示</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f4f4f4;
+        }
+        .container {
+            text-align: center;
+            width: 90%;
+            max-width: 800px;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            margin-top: 20px;
+            cursor: pointer;
+            background-color: #007BFF;
+            color: white;
+            border: none;
+            border-radius: 5px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .number {
+            font-size: 40px;
+            font-weight: bold;
+            margin-top: 20px;
+        }
+        .type, .move {
+            font-size: 30px;
+            margin-top: 10px;
+            font-weight: bold;
+            color: #007BFF;
+        }
+        .nameInput {
+            font-size: 20px;
+            padding: 5px;
+            margin-top: 20px;
+        }
+        .nameForm {
+            display: none;
+            margin-top: 20px;
+        }
+        .statsForm {
+            display: none;
+            margin-top: 20px;
+        }
+        .statsInputs {
+            display: flex;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            margin-top: 20px;
+        }
+        .statsInput {
+            font-size: 18px;
+            padding: 5px;
+            margin: 10px;
+            width: 120px;
+        }
+        .statsInputWrapper {
+            flex: 1;
+            min-width: 120px;
+            text-align: center;
+        }
+        .statsInputWrapper label {
+            display: block;
+            margin-bottom: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>乱数表示</h1>
+        <button onclick="generateRandomNumbers()">乱数を生成</button>
+        <div class="number" id="randomNumber"></div>
+        <div class="type" id="randomType"></div>
+        <div class="move" id="randomMoves"></div>
+
+        <!-- 名前入力フォーム -->
+        <div class="nameForm" id="nameForm">
+            <label for="nameInput">名前を入力:</label>
+            <input type="text" id="nameInput" class="nameInput" placeholder="名前を入力">
+            <button onclick="submitName()">名前を確定</button>
+        </div>
+
+        <!-- 種族値分配フォーム -->
+        <div class="statsForm" id="statsForm">
+            <h3>種族値を分配:</h3>
+            <div>合計種族値: <span id="totalStats"></span></div>
+            <div class="statsInputs" id="statsInputs">
+                <div class="statsInputWrapper">
+                    <label for="hp">HP:</label>
+                    <input type="number" id="hp" class="statsInput" value="0">
+                </div>
+                <div class="statsInputWrapper">
+                    <label for="attack">攻撃:</label>
+                    <input type="number" id="attack" class="statsInput" value="0">
+                </div>
+                <div class="statsInputWrapper">
+                    <label for="defense">防御:</label>
+                    <input type="number" id="defense" class="statsInput" value="0">
+                </div>
+                <div class="statsInputWrapper">
+                    <label for="specialAttack">特攻:</label>
+                    <input type="number" id="specialAttack" class="statsInput" value="0">
+                </div>
+                <div class="statsInputWrapper">
+                    <label for="specialDefense">特防:</label>
+                    <input type="number" id="specialDefense" class="statsInput" value="0">
+                </div>
+                <div class="statsInputWrapper">
+                    <label for="speed">素早さ:</label>
+                    <input type="number" id="speed" class="statsInput" value="0">
+                </div>
+            </div>
+            <button onclick="submitStats()">分配を確定</button>
+        </div>
+    </div>
+
+    <script>
+        let randomNumber, randomType, moves;
+
+        function generateRandomNumbers() {
+            // 100, 200, 300, 400, 500, 600 の配列
+            const numberArray = [100, 200, 300, 400, 500, 600];
+            // 18種類のタイプの配列
+            const typeArray = [
+                "ノーマル", "ほのお", "みず", "でんき", "くさ", "こおり", "かくとう", "どく", 
+                "じめん", "ひこう", "エスパー", "むし", "いわ", "ゴースト", "ドラゴン", "あく", 
+                "はがね", "フェアリー"
+            ];
+            // 技の配列
+            const moveTypes = ["物理", "特殊"];
+            const powerArray = [40, 50, 60, 70, 80, 90, 100, 110, 120];
+            const accuracyArray = [50, 60, 70, 80, 90, 100];
+            
+            // 乱数を生成 (100〜600)
+            randomNumber = numberArray[Math.floor(Math.random() * numberArray.length)];
+            // タイプをランダムに選択
+            randomType = typeArray[Math.floor(Math.random() * typeArray.length)];
+
+            // 4つの技をランダムに生成
+            moves = [];
+            for (let i = 0; i < 4; i++) {
+                // 50%の確率でタイプ一致、50%でランダムタイプ
+                const isTypeMatch = Math.random() < 0.5;
+                let moveType;
+
+                if (isTypeMatch) {
+                    // タイプ一致の場合
+                    moveType = randomType;
+                } else {
+                    // ランダムなタイプの場合
+                    moveType = typeArray[Math.floor(Math.random() * typeArray.length)];
+                }
+
+                // 技の物理/特殊、威力、命中率をランダムに決定
+                const randomMoveType = moveTypes[Math.floor(Math.random() * moveTypes.length)];
+                const randomPower = powerArray[Math.floor(Math.random() * powerArray.length)];
+                const randomAccuracy = accuracyArray[Math.floor(Math.random() * accuracyArray.length)];
+
+                moves.push(`技${i + 1}: タイプ: ${moveType} | ${randomMoveType} | 威力: ${randomPower} | 命中率: ${randomAccuracy}`);
+            }
+
+            // 結果を表示
+            document.getElementById('randomNumber').textContent = `合計種族値: ${randomNumber}`;
+            document.getElementById('randomType').textContent = `タイプ: ${randomType}`;
+            document.getElementById('randomMoves').innerHTML = moves.join("<br>");
+            
+            // 名前入力フォームを表示
+            document.getElementById('nameForm').style.display = 'block';
+
+            // 種族値分配フォームを表示
+            document.getElementById('statsForm').style.display = 'block';
+            document.getElementById('totalStats').textContent = randomNumber;
+        }
+
+        function submitName() {
+            // 名前を取得
+            const name = document.getElementById('nameInput').value || "名前なし";
+
+            // 結果に名前を反映
+            document.getElementById('randomNumber').textContent = `${name}の合計種族値: ${randomNumber}`;
+            document.getElementById('randomType').textContent = `${name}のタイプ: ${randomType}`;
+            document.getElementById('randomMoves').innerHTML = moves.join("<br>");
+        }
+
+        function submitStats() {
+            // 各ステータス値を取得
+            const hp = parseInt(document.getElementById('hp').value, 10);
+            const attack = parseInt(document.getElementById('attack').value, 10);
+            const defense = parseInt(document.getElementById('defense').value, 10);
+            const specialAttack = parseInt(document.getElementById('specialAttack').value, 10);
+            const specialDefense = parseInt(document.getElementById('specialDefense').value, 10);
+            const speed = parseInt(document.getElementById('speed').value, 10);
+
+            // 合計種族値を計算
+            const totalStats = hp + attack + defense + specialAttack + specialDefense + speed;
+
+            if (totalStats !== randomNumber) {
+                alert(`合計種族値が一致しません。現在の合計: ${totalStats}、必要な合計: ${randomNumber}`);
+            } else {
+                alert('種族値が正しく分配されました！');
+            }
+        }
+    </script>
+</body>
+</html>
