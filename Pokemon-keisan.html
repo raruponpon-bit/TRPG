@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>ポケモン対戦ツール</title>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<style>
+  /* --- 基本リセット --- */
+  :root{
+    --bg:#0f172a10;
+    --card:#ffffff;
+    --muted:#6b7280;
+    --accent:#2563eb;
+    --danger:#ef4444;
+    --glass: rgba(255,255,255,0.9);
+    --radius:14px;
+    --shadow: 0 6px 20px rgba(2,6,23,0.08);
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    font-family: "Noto Sans JP", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+    margin:0;
+    background: linear-gradient(180deg,#eef2ff 0%, #f8fafc 100%);
+    color:#0f172a;
+    padding:28px;
+  }
+
+  /* --- layout --- */
+  .wrap{max-width:1200px;margin:0 auto;display:grid;gap:20px}
+  header{display:flex;align-items:center;justify-content:space-between;gap:12px}
+  h1{font-size:20px;margin:0}
+  .controls{display:flex;gap:8px;align-items:center}
+
+  /* --- input card --- */
+  .input-card{background:var(--card);border-radius:var(--radius);padding:14px;box-shadow:var(--shadow);display:grid;gap:10px}
+  textarea{
+    width:100%;min-height:120px;padding:12px;border-radius:10px;border:1px solid #e6eef9;font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, "Roboto Mono", monospace;
+    resize:vertical; background:#fbfdff;
+  }
+  .row{display:flex;gap:8px;flex-wrap:wrap}
+  .btn{padding:10px 12px;border-radius:10px;border:1px solid #dbeafe;background:#fff;cursor:pointer;font-weight:600}
+  .btn.primary{background:var(--accent);color:#fff;border:none}
+  .btn.ghost{background:#fff}
+  .btn.danger{background:var(--danger);color:#fff;border:none}
+
+  /* --- main area --- */
+  .grid{display:grid;grid-template-columns: 1fr 420px;gap:20px;align-items:start}
+  @media (max-width:980px){ .grid{grid-template-columns:1fr;}}
+  .battle{display:grid;gap:12px}
+  .battle-row{display:flex;gap:12px}
+  .card{background:var(--card);border-radius:12px;padding:12px;box-shadow:var(--shadow)}
+  .poke-panel{display:flex;flex-direction:column;gap:8px;min-width:0}
+  .poke-title{display:flex;justify-content:space-between;align-items:center;gap:8px}
+  select{padding:10px;border-radius:10px;border:1px solid #e6eef9;background:#fff}
+
+  /* --- HP bar --- */
+  .hp-row{display:flex;flex-direction:column;gap:6px}
+  .hp-text{font-size:13px;color:var(--muted)}
+  .hp-bar{height:16px;width:100%;background:#eef2f3;border-radius:999px;overflow:hidden;border:1px solid #e6eef9}
+  .hp-fill{height:100%;width:100%;background:#22c55e;transition:width .45s ease,background .2s}
+
+  /* --- move list & preview --- */
+  .preview{background:#fbfdff;border:1px solid #eef2ff;padding:10px;border-radius:10px;font-size:13px;color:#0f172a}
+  .result-log{background:#ffffff;border:1px solid #eef2ff;padding:12px;border-radius:10px;min-height:78px}
+
+  /* --- saved list --- */
+  .saved-list{display:flex;flex-direction:column;gap:8px;max-height:360px;overflow:auto;padding-right:6px}
+  .saved-item{display:flex;align-items:center;justify-content:space-between;padding:8px;border-radius:10px;border:1px solid #f1f5f9;background:linear-gradient(180deg,#fff,#fbfdff)}
+  .saved-meta{display:flex;gap:8px;align-items:center}
+  .meta-name{font-weight:700}
+  .meta-type{font-size:13px;color:var(--muted)}
+
+  /* small */
+  .small{font-size:13px;color:var(--muted)}
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>ポケモン対戦ツール（ビジュアル & 永続保存）</h1>
+      <div class="controls">
+        <button class="btn ghost" id="btnResetBattle">バトルリセット</button>
+        <button class="btn ghost" id="btnSwap">左右入替</button>
+        <button class="btn danger" id="btnClearAll">保存を全消去</button>
+      </div>
+    </header>
+
+    <!-- 入力 -->
+    <section class="input-card card">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div class="small">ポケモン情報をテキストで貼り付けて「保存」</div>
+        <div style="display:flex;gap:8px">
+          <button class="btn ghost" id="btnClearInput">入力クリア</button>
+          <button class="btn primary" id="btnSave">保存</button>
+        </div>
+      </div>
+      <textarea id="pokeInput" placeholder="ここにポケモン情報を貼り付けてください"></textarea>
+      <div class="small">保存後、下の一覧にカードが追加されます。入力は1体ずつ貼ってください。</div>
+    </section>
+
+    <!-- メイン: 対戦エリア + 保存リスト -->
+    <main class="grid">
+      <!-- 左: 対戦 -->
+      <div class="battle">
+        <div class="card poke-panel">
+          <div class="battle-row" style="gap:12px">
+            <div style="flex:1" class="card">
+              <div class="poke-title"><strong>ポケモン A</strong></div>
+              <select id="selectPokeA" aria-label="ポケモンA選択"></select>
+              <div id="typeA" class="small">タイプ: -</div>
+              <div class="hp-row">
+                <div id="hpTextA" class="hp-text">HP: -</div>
+                <div class="hp-bar"><div id="hpFillA" class="hp-fill"></div></div>
+              </div>
+              <label class="small" style="margin-top:6px">技を選択</label>
+              <select id="selectMoveA"></select>
+              <div id="previewA" class="preview">相性: -</div>
+              <button class="btn primary" id="btnAttackA" style="margin-top:8px">Aが攻撃</button>
+            </div>
+
+            <div style="flex:1" class="card">
+              <div class="poke-title"><strong>ポケモン B</strong></div>
+              <select id="selectPokeB" aria-label="ポケモンB選択"></select>
+              <div id="typeB" class="small">タイプ: -</div>
+              <div class="hp-row">
+                <div id="hpTextB" class="hp-text">HP: -</div>
+                <div class="hp-bar"><div id="hpFillB" class="hp-fill"></div></div>
+              </div>
+              <label class="small" style="margin-top:6px">技を選択</label>
+              <select id="selectMoveB"></select>
+              <div id="previewB" class="preview">相性: -</div>
+              <button class="btn primary" id="btnAttackB" style="margin-top:8px">Bが攻撃</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="small" style="margin-bottom:8px">バトル結果</div>
+          <div id="resultLog" class="result-log"><span class="small">（ここに直近の攻撃ログが表示されます）</span></div>
+        </div>
+      </div>
+
+      <!-- 右: 保存リスト -->
+      <aside class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <strong>保存済みポケモン</strong>
+          <div class="small muted" id="countSaved">0</div>
+        </div>
+        <div style="height:12px"></div>
+        <div id="savedList" class="saved-list"></div>
+      </aside>
+    </main>
+  </div>
+
+<script>
+(() => {
+  const STORAGE_KEY = "pkdx_v2";
+  const TYPE_CHART = {
+    "ノーマル": { "いわ":0.5,"はがね":0.5,"ゴースト":0 },
+    "ほのお": { "くさ":2,"こおり":2,"むし":2,"はがね":2,"ほのお":0.5,"みず":0.5,"いわ":0.5,"ドラゴン":0.5 },
+    "みず": { "ほのお":2,"じめん":2,"いわ":2,"みず":0.5,"くさ":0.5,"ドラゴン":0.5 },
+    "でんき": { "みず":2,"ひこう":2,"でんき":0.5,"くさ":0.5,"ドラゴン":0.5,"じめん":0 },
+    "くさ": { "みず":2,"じめん":2,"いわ":2,"ほのお":0.5,"くさ":0.5,"どく":0.5,"ひこう":0.5,"むし":0.5,"ドラゴン":0.5,"はがね":0.5 },
+    "こおり": { "くさ":2,"じめん":2,"ひこう":2,"ドラゴン":2,"ほのお":0.5,"みず":0.5,"こおり":0.5,"はがね":0.5 },
+    "かくとう": { "ノーマル":2,"こおり":2,"いわ":2,"あく":2,"はがね":2,"どく":0.5,"ひこう":0.5,"エスパー":0.5,"むし":0.5,"フェアリー":0.5,"ゴースト":0 },
+    "どく": { "くさ":2,"フェアリー":2,"どく":0.5,"じめん":0.5,"いわ":0.5,"ゴースト":0.5,"はがね":0 },
+    "じめん": { "ほのお":2,"でんき":2,"どく":2,"いわ":2,"はがね":2,"くさ":0.5,"むし":0.5,"ひこう":0 },
+    "ひこう": { "くさ":2,"かくとう":2,"むし":2,"でんき":0.5,"いわ":0.5,"はがね":0.5 },
+    "エスパー": { "かくとう":2,"どく":2,"エスパー":0.5,"はがね":0.5,"あく":0 },
+    "むし": { "くさ":2,"エスパー":2,"あく":2,"ほのお":0.5,"かくとう":0.5,"どく":0.5,"ひこう":0.5,"ゴースト":0.5,"はがね":0.5,"フェアリー":0.5 },
+    "いわ": { "ほのお":2,"こおり":2,"ひこう":2,"むし":2,"かくとう":0.5,"じめん":0.5,"はがね":0.5 },
+    "ゴースト": { "エスパー":2,"ゴースト":2,"あく":0.5,"ノーマル":0 },
+    "ドラゴン": { "ドラゴン":2,"はがね":0.5,"フェアリー":0 },
+    "あく": { "エスパー":2,"ゴースト":2,"かくとう":0.5,"あく":0.5,"フェアリー":0.5 },
+    "はがね": { "こおり":2,"いわ":2,"フェアリー":2,"ほのお":0.5,"みず":0.5,"でんき":0.5,"はがね":0.5 },
+    "フェアリー": { "かくとう":2,"ドラゴン":2,"あく":2,"ほのお":0.5,"どく":0.5,"はがね":0.5 }
+  };
+
+  const $ = id => document.getElementById(id);
+
+  const inputArea = $('pokeInput');
+  const btnSave = $('btnSave'), btnClearInput = $('btnClearInput');
+  const selectA = $('selectPokeA'), selectB = $('selectPokeB');
+  const selectMoveA = $('selectMoveA'), selectMoveB = $('selectMoveB');
+  const typeA = $('typeA'), typeB = $('typeB');
+  const hpTextA = $('hpTextA'), hpTextB = $('hpTextB');
+  const hpFillA = $('hpFillA'), hpFillB = $('hpFillB');
+  const previewA = $('previewA'), previewB = $('previewB');
+  const resultLog = $('resultLog');
+  const savedList = $('savedList'), countSaved = $('countSaved');
+  const btnAttackA = $('btnAttackA'), btnAttackB = $('btnAttackB');
+  const btnResetBattle = $('btnResetBattle'), btnSwap = $('btnSwap'), btnClearAll = $('btnClearAll');
+
+  let pokedex = [], battle = { A:null, B:null };
+
+  function saveToStorage(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(pokedex)); }
+  function loadFromStorage(){ 
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return [];
+    try { return JSON.parse(raw); } catch { return []; }
+  }
+
+  function parsePokemon(text){
+    const joined = text.replace(/\r/g,'');
+    const name = joined.match(/名前:\s*(.+)/)?.[1]?.trim() || '未設定';
+    const type = joined.match(/タイプ:\s*(.+)/)?.[1]?.trim() || 'ノーマル';
+    const baseHp = parseInt(joined.match(/HP:\s*(\d+)/)?.[1]||'0',10);
+    const stats = { baseHp, maxHp: baseHp+100 };
+    const moves = [];
+    for(let i=1;i<=4;i++){
+      const m = joined.match(new RegExp(`技${i}:\\s*([^|]+)\\|\\s*([^|]+)\\|\\s*威力:(\\d+)\\s*\\|\\s*命中率:(\\d+)`));
+      if (m) moves.push({ name:`技${i}`, type:m[1].trim(), category:m[2].trim(), power:+m[3], accuracy:+m[4]});
+    }
+    return { name, type, stats, moves };
+  }
+
+  function renderSavedList(){
+    savedList.innerHTML = '';
+    if (!pokedex.length){ savedList.innerHTML = `<div class="small" style="color:#6b7280">（保存したポケモンはここに表示されます）</div>`; }
+    pokedex.forEach((p,i)=>{
+      const div = document.createElement('div');
+      div.className = 'saved-item';
+      const meta = document.createElement('div');
+      meta.className = 'saved-meta';
+      meta.innerHTML = `<div><div class="meta-name">${p.name}</div><div class="meta-type small">${p.type} ・ HP ${p.stats.maxHp}</div></div>`;
+      const btns = document.createElement('div');
+      const del = document.createElement('button');
+      del.className='btn ghost';
+      del.textContent='削除';
+      del.onclick=()=>{ pokedex.splice(i,1); saveToStorage(); renderSavedList(); updateSelects(); };
+      btns.appendChild(del);
+      div.appendChild(meta); div.appendChild(btns);
+      savedList.appendChild(div);
+    });
+    countSaved.textContent = String(pokedex.length);
+    updateSelects();
+  }
+
+  function updateSelects(){
+    [selectA,selectB].forEach(sel=>{ sel.innerHTML=''; pokedex.forEach((p,i)=>sel.add(new Option(p.name,i))); });
+    setPokemonFromSelect('A'); setPokemonFromSelect('B');
+  }
+
+  function setPokemonFromSelect(which){
+    const sel = which==='A'?selectA:selectB;
+    const idx = +sel.value||0;
+    if (!pokedex[idx]) return;
+    battle[which] = JSON.parse(JSON.stringify(pokedex[idx]));
+    battle[which].currentHp = pokedex[idx].stats.maxHp;
+
+    const typeEl = which==='A'?typeA:typeB;
+    const hpText = which==='A'?hpTextA:hpTextB;
+    const hpFill = which==='A'?hpFillA:hpFillB;
+    const moveSel = which==='A'?selectMoveA:selectMoveB;
+    const preview = which==='A'?previewA:previewB;
+
+    typeEl.textContent = `タイプ: ${pokedex[idx].type}`;
+    hpText.textContent = `HP: ${battle[which].currentHp} / ${battle[which].stats.maxHp}`;
+    hpFill.style.width = '100%';
+    moveSel.innerHTML = '';
+    pokedex[idx].moves.forEach((m,i)=>{
+    moveSel.add(new Option(`${m.name} (${m.type}, 威力${m.power}, 命中${m.accuracy}%)`, i));
+    });
+    preview.textContent = '相性: -';
+  }
+
+  function calculateDamage(att, def, move){
+    const atkStat = move.category.includes('物理')?att.stats.attack||10:att.stats.spAttack||10;
+    const defStat = move.category.includes('物理')?def.stats.defense||10:def.stats.spDefense||10;
+    const base = move.power*(atkStat/Math.max(defStat,1));
+    const stab = att.type===move.type?1.5:1;
+    const mult = TYPE_CHART[move.type]?.[def.type]||1;
+    const dmg = Math.max(0,Math.floor(base*stab*mult/2));
+    return { dmg, mult };
+  }
+
+function doAttack(which){
+    if (!battle.A || !battle.B) return;
+    const atk = which==='A'?battle.A:battle.B;
+    const def = which==='A'?battle.B:battle.A;
+    const moveSel = which==='A'?selectMoveA:selectMoveB;
+    const move = atk.moves[+moveSel.value||0];
+    if (!move) return;
+
+    // 命中判定
+    const hitRoll = Math.random() * 100;
+    if (hitRoll > move.accuracy) {
+        appendLog(`${atk.name} の ${move.name} は外れた！`);
+        return;
+    }
+
+    const { dmg, mult } = calculateDamage(atk,def,move);
+    def.currentHp = Math.max(0,def.currentHp-dmg);
+    updateHpUI('A'); updateHpUI('B');
+    appendLog(`${atk.name} の ${move.name} → ${def.name} に ${dmg} ダメージ (x${mult})${def.currentHp===0?' ひんし！':''}`);
+}
+
+  function updateHpUI(which){
+    const slot = which==='A'?battle.A:battle.B;
+    if (!slot) return;
+    const ratio = slot.currentHp/slot.stats.maxHp;
+    const fill = which==='A'?hpFillA:hpFillB;
+    const text = which==='A'?hpTextA:hpTextB;
+    fill.style.width = `${ratio*100}%`;
+    text.textContent = `HP: ${slot.currentHp} / ${slot.stats.maxHp}`;
+  }
+
+  function appendLog(text){
+    const entry = document.createElement('div'); entry.style.marginBottom='4px';
+    entry.textContent=text;
+    resultLog.prepend(entry);
+  }
+
+  btnSave.addEventListener('click',()=>{
+    const txt=inputArea.value.trim();
+    if(!txt) return;
+    const p=parsePokemon(txt);
+    pokedex.push(p);
+    saveToStorage();
+    renderSavedList();
+    inputArea.value='';
+    appendLog(`${p.name} を保存しました`);
+  });
+  btnClearInput.addEventListener('click',()=>inputArea.value='');
+  selectA.addEventListener('change',()=>setPokemonFromSelect('A'));
+  selectB.addEventListener('change',()=>setPokemonFromSelect('B'));
+  selectMoveA.addEventListener('change',()=>{}); selectMoveB.addEventListener('change',()=>{});
+  btnAttackA.addEventListener('click',()=>doAttack('A'));
+  btnAttackB.addEventListener('click',()=>doAttack('B'));
+  btnResetBattle.addEventListener('click',()=>{
+    if(battle.A) battle.A.currentHp=battle.A.stats.maxHp;
+    if(battle.B) battle.B.currentHp=battle.B.stats.maxHp;
+    updateHpUI('A'); updateHpUI('B');
+    appendLog('バトルをリセット（HP全回復）');
+  });
+  btnSwap.addEventListener('click',()=>{
+    const a=selectA.value,b=selectB.value;
+    selectA.value=b; selectB.value=a;
+    setPokemonFromSelect('A'); setPokemonFromSelect('B');
+    appendLog('左右を入れ替えました');
+  });
+  btnClearAll.addEventListener('click',()=>{
+    pokedex=[]; saveToStorage(); renderSavedList(); updateSelects(); resultLog.innerHTML='<span class="small">（ログクリア）</span>';
+  });
+
+  // 初期ロード
+  pokedex = loadFromStorage();
+  renderSavedList();
+})();
+</script>
+</body>
+</html>
