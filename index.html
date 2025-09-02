@@ -1,263 +1,40 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ポケモン風乱数生成</title>
-<style>
-    body {
-        font-family: 'Segoe UI', sans-serif;
-        background: #f0f4f8;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        min-height: 100vh;
-        margin: 0;
-    }
-
-    .container {
-        background: white;
-        border-radius: 15px;
-        box-shadow: 0 8px 20px rgba(0,0,0,0.1);
-        padding: 30px;
-        max-width: 700px;
-        width: 90%;
-        text-align: center;
-    }
-
-    h1 { margin-bottom: 20px; color: #333; }
-
-    button {
-        padding: 10px 20px;
-        font-size: 16px;
-        margin: 10px 5px;
-        border: none;
-        border-radius: 8px;
-        cursor: pointer;
-        background-color: #007BFF;
-        color: white;
-        transition: 0.3s;
-    }
-    button:hover { background-color: #0056b3; }
-
-    .card {
-        background: #f9f9f9;
-        border-radius: 10px;
-        padding: 15px;
-        margin-top: 20px;
-        text-align: left;
-        box-shadow: 0 4px 10px rgba(0,0,0,0.05);
-        display: none; /* 初期は非表示 */
-    }
-
-    .card h2 {
-        margin: 0 0 10px 0;
-        font-size: 20px;
-        color: #007BFF;
-    }
-
-    .card table {
-        width: 100%;
-        border-collapse: collapse;
-        margin-top: 10px;
-    }
-    .card table td, .card table th {
-        border: 1px solid #ddd;
-        padding: 8px;
-        text-align: center;
-    }
-
-    .type {
-        font-weight: bold;
-        font-size: 18px;
-        margin-top: 10px;
-        padding: 5px 10px;
-        border-radius: 5px;
-        display: inline-block;
-        color: white;
-    }
-
-    .nameForm, .statsForm { display: none; margin-top: 20px; }
-
-    input[type="text"], input[type="number"] {
-        padding: 5px;
-        font-size: 16px;
-        border-radius: 5px;
-        border: 1px solid #ccc;
-        width: 100%;
-    }
-
-    .statsInputs {
-        display: grid;
-        grid-template-columns: repeat(auto-fit,minmax(100px,1fr));
-        gap: 10px;
-        margin-top: 10px;
-    }
-
-    #resultText {
-        margin-top: 20px;
-        white-space: pre-wrap;
-        word-break: break-word;
-        font-size: 16px;
-        max-height: 300px;
-        overflow-y: auto;
-        background: #eef2f7;
-        padding: 10px;
-        border-radius: 8px;
-    }
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ポケモンツール</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f8f8f8;
+            text-align: center;
+            padding: 50px;
+        }
+        h1 {
+            color: #ff0000;
+        }
+        .button {
+            display: inline-block;
+            margin: 20px;
+            padding: 15px 30px;
+            font-size: 18px;
+            color: #fff;
+            background-color: #007bff;
+            text-decoration: none;
+            border-radius: 8px;
+            transition: background-color 0.3s;
+        }
+        .button:hover {
+            background-color: #0056b3;
+        }
+    </style>
 </head>
 <body>
-<div class="container">
-    <h1>ポケモン乱数生成</h1>
-    <button id="generateBtn">乱数を生成</button>
+    <h1>ポケモンツール</h1>
+    <p>下のボタンから各ページに移動できます</p>
 
-    <div class="card" id="resultCard">
-        <h2 id="pokemonName">名前: 未設定</h2>
-        <div id="totalStat" class="type" style="background:#555;">合計種族値: 0</div>
-        <div id="pokemonType" class="type" style="background:#777; margin-top:10px;">タイプ: 未設定</div>
-        <div id="movesList"></div>
-    </div>
-
-    <div class="nameForm" id="nameForm">
-        <input type="text" id="nameInput" placeholder="ポケモンの名前">
-        <button id="submitNameBtn">名前確定</button>
-    </div>
-
-    <div class="statsForm" id="statsForm">
-        <h3>種族値を分配</h3>
-        <div class="statsInputs">
-            <div><label>HP</label><input type="number" id="hp" value="0"></div>
-            <div><label>攻撃</label><input type="number" id="attack" value="0"></div>
-            <div><label>防御</label><input type="number" id="defense" value="0"></div>
-            <div><label>特攻</label><input type="number" id="specialAttack" value="0"></div>
-            <div><label>特防</label><input type="number" id="specialDefense" value="0"></div>
-            <div><label>素早さ</label><input type="number" id="speed" value="0"></div>
-        </div>
-        <button id="submitStatsBtn">分配確定</button>
-    </div>
-
-    <button id="summarizeBtn" style="display:none;">結果をまとめる</button>
-    <button id="copyBtn" style="display:none;">結果をコピー</button>
-
-    <div id="resultText"></div>
-</div>
-
-<script>
-const elements = {
-    name: document.getElementById('pokemonName'),
-    type: document.getElementById('pokemonType'),
-    totalStat: document.getElementById('totalStat'),
-    movesList: document.getElementById('movesList'),
-    nameForm: document.getElementById('nameForm'),
-    statsForm: document.getElementById('statsForm'),
-    resultCard: document.getElementById('resultCard'),
-    summarizeBtn: document.getElementById('summarizeBtn'),
-    copyBtn: document.getElementById('copyBtn'),
-    resultText: document.getElementById('resultText'),
-    statsInputs: {
-        hp: document.getElementById('hp'),
-        attack: document.getElementById('attack'),
-        defense: document.getElementById('defense'),
-        specialAttack: document.getElementById('specialAttack'),
-        specialDefense: document.getElementById('specialDefense'),
-        speed: document.getElementById('speed')
-    },
-    nameInput: document.getElementById('nameInput')
-};
-
-let pokemon = { name:'未設定', total:0, type:'未設定', moves:[] };
-
-// タイプカラー
-const typeColors = {
-    "ノーマル":"#A8A77A","ほのお":"#EE8130","みず":"#6390F0","でんき":"#F7D02C",
-    "くさ":"#7AC74C","こおり":"#96D9D6","かくとう":"#C22E28","どく":"#A33EA1",
-    "じめん":"#E2BF65","ひこう":"#A98FF3","エスパー":"#F95587","むし":"#A6B91A",
-    "いわ":"#B6A136","ゴースト":"#735797","ドラゴン":"#6F35FC","あく":"#705746",
-    "はがね":"#B7B7CE","フェアリー":"#D685AD"
-};
-
-function getRandomElement(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
-
-function generateMoves(type){
-    const moveTypes=["物理","特殊"];
-    const powerArr=[40,50,60,70,80,90,100,110,120];
-    const accArr=[50,60,70,80,90,100];
-    const typeArray=Object.keys(typeColors);
-    let moves=[];
-    for(let i=0;i<4;i++){
-        const moveType=Math.random()<0.5 ? type : getRandomElement(typeArray);
-        moves.push({
-            name:`技${i+1}`,
-            type: moveType,
-            category: getRandomElement(moveTypes),
-            power: getRandomElement(powerArr),
-            accuracy: getRandomElement(accArr)
-        });
-    }
-    return moves;
-}
-
-function updateDisplay(){
-    elements.name.textContent=`名前: ${pokemon.name}`;
-    elements.totalStat.textContent=`合計種族値: ${pokemon.total}`;
-    elements.type.textContent=`タイプ: ${pokemon.type}`;
-    elements.type.style.backgroundColor=typeColors[pokemon.type]||'#777';
-    elements.movesList.innerHTML="<table><tr><th>技名</th><th>タイプ</th><th>分類</th><th>威力</th><th>命中率</th></tr>"+
-        pokemon.moves.map(m=>`<tr><td>${m.name}</td><td>${m.type}</td><td>${m.category}</td><td>${m.power}</td><td>${m.accuracy}</td></tr>`).join('')+"</table>";
-}
-
-document.getElementById('generateBtn').addEventListener('click',()=>{
-    const numbers = [200,250,300,350,400,450,500,550,600];
-    const types = Object.keys(typeColors);
-    pokemon.total=getRandomElement(numbers);
-    pokemon.type=getRandomElement(types);
-    pokemon.moves=generateMoves(pokemon.type);
-
-    elements.nameForm.style.display='block';
-    elements.statsForm.style.display='block';
-    elements.resultCard.style.display='block';
-    elements.summarizeBtn.style.display='inline-block';
-    elements.copyBtn.style.display='inline-block';
-    updateDisplay();
-});
-
-document.getElementById('submitNameBtn').addEventListener('click',()=>{
-    pokemon.name=elements.nameInput.value||'未設定';
-    updateDisplay();
-});
-
-document.getElementById('submitStatsBtn').addEventListener('click',()=>{
-    const s=elements.statsInputs;
-    const total=['hp','attack','defense','specialAttack','specialDefense','speed'].reduce((a,k)=>a+parseInt(s[k].value||0,10),0);
-    if(total!==pokemon.total) alert(`合計種族値が一致しません（現在: ${total} 必要: ${pokemon.total}）`);
-    else alert('種族値が正しく分配されました！');
-});
-
-elements.summarizeBtn.addEventListener('click',()=>{
-    const s=elements.statsInputs;
-    elements.resultText.textContent=
-`名前: ${pokemon.name}
-合計種族値: ${pokemon.total}
-タイプ: ${pokemon.type}
-
-技一覧:
-${pokemon.moves.map(m=>`${m.name}: ${m.type} | ${m.category} | 威力:${m.power} | 命中率:${m.accuracy}`).join('\n')}
-
-ステータス:
-HP: ${s.hp.value}
-攻撃: ${s.attack.value}
-防御: ${s.defense.value}
-特攻: ${s.specialAttack.value}
-特防: ${s.specialDefense.value}
-素早さ: ${s.speed.value}`;
-});
-
-elements.copyBtn.addEventListener('click',()=>{
-    navigator.clipboard.writeText(elements.resultText.textContent)
-        .then(()=>alert('結果がコピーされました！'))
-        .catch(e=>alert('コピーに失敗しました: '+e));
-});
-</script>
+    <a class="button" href="Pokemon-seisei.html">ポケモン生成ページへ</a>
+    <a class="button" href="Pokemon-keisan.html">ポケモン計算ページへ</a>
 </body>
 </html>
